@@ -19,10 +19,10 @@ namespace LostCargoExpansion
 
 	//This attribute specifies that we have a dependency on R2API, as we're using it to add our item to the game.
 	//You don't need this if you're not using R2API in your plugin, it's just to tell BepInEx to initialize R2API before this plugin so it's safe to use R2API.
-    [BepInDependency(R2API.R2API.PluginGUID)]
+	[BepInDependency(R2API.R2API.PluginGUID)]
 
-    //This attribute is required, and lists metadata for your plugin.
-    [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
+	//This attribute is required, and lists metadata for your plugin.
+	[BepInPlugin(PluginGUID, PluginName, PluginVersion)]
 
 	// Requires everyone in a Lobby to have the same version
 	[NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
@@ -36,13 +36,13 @@ namespace LostCargoExpansion
 	//This is the main declaration of our plugin class. BepInEx searches for all classes inheriting from BaseUnityPlugin to initialize on startup.
 	//BaseUnityPlugin itself inherits from MonoBehaviour, so you can use this as a reference for what you can declare and use in your plugin class: https://docs.unity3d.com/ScriptReference/MonoBehaviour.html
 	public class LostCargoExpansion : BaseUnityPlugin
-    {
-        //The Plugin GUID should be a unique ID for this plugin, which is human readable (as it is used in places like the config).
-        //If we see this PluginGUID as it is on thunderstore, we will deprecate this mod. Change the PluginAuthor and the PluginName !
-        public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginAuthor = "SheepishShepherd";
-        public const string PluginName = "TestMod";
-        public const string PluginVersion = "1.0.0";
+	{
+		//The Plugin GUID should be a unique ID for this plugin, which is human readable (as it is used in places like the config).
+		//If we see this PluginGUID as it is on thunderstore, we will deprecate this mod. Change the PluginAuthor and the PluginName !
+		public const string PluginGUID = PluginAuthor + "." + PluginName;
+		public const string PluginAuthor = "SheepishShepherd";
+		public const string PluginName = "TestMod";
+		public const string PluginVersion = "1.0.0";
 
 		public static AssetBundle MainAssets;
 		public List<ItemBase> Items = new List<ItemBase>();
@@ -80,16 +80,16 @@ namespace LostCargoExpansion
 
 		//The Update() method is run on every frame of the game.
 		private void Update() {
-            //This if statement checks if the player has currently pressed F2.
-            if (Input.GetKeyDown(KeyCode.F2)) {
-                //Get the player body to use a position:
-                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+			//This if statement checks if the player has currently pressed F2.
+			if (Input.GetKeyDown(KeyCode.F2)) {
+				//Get the player body to use a position:
+				var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
 
-                //And then drop our defined item in front of the player.
+				//And then drop our defined item in front of the player.
 
-                Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
-                PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(SafeguardCell.instance.ItemDef.itemIndex), transform.position, transform.forward * 20f);
-            }
-        }
-    }
+				Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
+				PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(SafeguardCell.instance.ItemDef.itemIndex), transform.position, transform.forward * 20f);
+			}
+		}
+	}
 }
