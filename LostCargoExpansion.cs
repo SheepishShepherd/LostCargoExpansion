@@ -1,16 +1,12 @@
 using BepInEx;
+using LostCargoExpansion.Items;
 using R2API;
 using R2API.Utils;
 using RoR2;
-using UnityEngine;
-using UnityEngine.AddressableAssets;
-using static RoR2.RoR2Content;
-using static RoR2.Skills.ComboSkillDef;
-using UnityEngine.UIElements;
-using System.Reflection;
-using LostCargoExpansion.Items;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
 
 namespace LostCargoExpansion
 {
@@ -76,8 +72,6 @@ namespace LostCargoExpansion
 			Log.LogInfo(nameof(Awake) + " done.");
 		}
 
-		internal static string Stylize(string type, string text) => $"<style={type}>{text}</style>";
-
 		//The Update() method is run on every frame of the game.
 		private void Update() {
 			//This if statement checks if the player has currently pressed F2.
@@ -89,6 +83,8 @@ namespace LostCargoExpansion
 
 				Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
 				PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(SafeguardCell.instance.ItemDef.itemIndex), transform.position, transform.forward * 20f);
+				PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(RoR2Content.Items.ShieldOnly.itemIndex), transform.position, transform.forward * 20f);
+				PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(RoR2Content.Items.PersonalShield.itemIndex), transform.position, transform.forward * 20f);
 			}
 		}
 	}

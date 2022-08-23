@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Text;
-using static RoR2.RoR2Content;
-using static RoR2.Skills.ComboSkillDef;
-using UnityEngine.UIElements;
-
+﻿
 namespace LostCargoExpansion
 {
+	internal class ModifyText {
+		internal static string Stylize(string type, string text) => $"<style={type}>{text}</style>";
+	}
+
 	internal class StyleID
 	{
 		internal const string Damage = "cIsDamage";
