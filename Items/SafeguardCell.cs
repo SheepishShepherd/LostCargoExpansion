@@ -12,9 +12,9 @@ namespace LostCargoExpansion.Items
 		public override string ItemLangTokenName => "SAFEGUARD_CELL";
 		public override string ItemPickupDesc => "Rapidly generate shield when at critical health.";
 		public override string ItemFullDescription =>
-			$"Gain {ModifyText.Stylize(StyleID.Healing, baseShield.ToString())} {ModifyText.Stylize(StyleID.Stack, $"(+{stackShield} per stack)")} flat {ModifyText.Stylize(StyleID.Healing, "shield")}. " +
-			$"Taking damage to below {ModifyText.Stylize(StyleID.Health, "25% health")} causes you to instantly recharge {ModifyText.Stylize(StyleID.Healing, baseShield.ToString())} {ModifyText.Stylize(StyleID.Stack, $"(+{stackShield} per stack)")} {ModifyText.Stylize(StyleID.Healing, "shield")} " +
-			$"and rapidly regenerate any {ModifyText.Stylize(StyleID.Healing, "remaining shield")}. " +
+			$"Taking damage to below {ModifyText.Stylize(StyleID.Health, "25% health")} causes you to gain and instantly regenerate {ModifyText.Stylize(StyleID.Healing, baseShield.ToString())} {ModifyText.Stylize(StyleID.Stack, $"(+{stackShield} per stack)")} {ModifyText.Stylize(StyleID.Healing, "bonus shield")}. " +
+			$"The rest of your shield will also regenerate without disruption. " +
+			$"Bonus shield will be lost after 7 seconds." +
 			$"Recharges every {ModifyText.Stylize(StyleID.Utility, $"{baseCooldown} seconds")}.";
 
 		public override string ItemLore =>
@@ -37,38 +37,38 @@ namespace LostCargoExpansion.Items
 		public override Sprite ItemIcon => Resources.Load<Sprite>("Textures/MiscIcons/texMysteryIcon");
 		public override GameObject ItemModel => Resources.Load<GameObject>("Prefabs/PickupModels/PickupMystery");
 
+		public static BuffDef SafeguardCellBuff;
+		public static BuffDef ForceShieldBuff;
+
 		public override void Init(ConfigFile config) {
 			//CreateConfig(config);
 			CreateLang();
 			//CreateSound();
-			//CreateBuff();
+			CreateBuff();
 			CreateItem();
 			ModifyHooks();
 		}
 
 		public override void ModifyHooks() {
-			GetStatCoefficients += GrantBaseShield;
-			//On.RoR2.Run.Start += PopulateBlacklistedBuffsAndDebuffs;
-			//On.RoR2.CharacterBody.FixedUpdate += ForceFeedPotion;
-			//RoR2Application.onLoad += OnLoadModCompatability;
+			GetStatCoefficients += AddBuffShield; // Adds additional shield while buff is active
 			On.RoR2.CharacterBody.OnTakeDamageServer += TriggerShieldGeneration;
 			On.RoR2.CharacterMaster.OnBodyDamaged += TriggerShieldGeneration;
-			On.RoR2.CharacterBody.Update += ShieldLogic;
+			On.RoR2.CharacterBody.FixedUpdate += ShieldLogic;
 		}
 
-		private void GrantBaseShield(CharacterBody sender, StatHookEventArgs args) {
-			if (GetCount(sender) > 0) {
+		private void AddBuffShield(CharacterBody sender, StatHookEventArgs args) {
+			if (GetCount(sender) > 0 && sender.HasBuff(SafeguardCellBuff)) {
 				args.baseShieldAdd += baseShield + (stackShield * (GetCount(sender) - 1));
 			}
 		}
 
-		private void ShieldLogic(On.RoR2.CharacterBody.orig_Update orig, CharacterBody self) {
+		private void ShieldLogic(On.RoR2.CharacterBody.orig_FixedUpdate orig, CharacterBody self) {
 			orig(self);
+
 			if (self.master.inventory.GetItemCount(ItemDef) <= 0)
 				return;
 
-			HealthComponent healthComp = self.healthComponent;
-			if (!healthComp.alive)
+			if (!self.healthComponent.alive)
 				return; // Logic should only occur when player is alive
 
 			Chat.AddMessage($"{rechargeStopwatch}"); // Debug timer
@@ -79,63 +79,59 @@ namespace LostCargoExpansion.Items
 					rechargeStopwatch = 0;
 				}
 			}
-
-			/*
-			float currentShield = healthComp.shield;
-			if () {
-
-			}
-			bool flag = currentShield >= self.maxShield;
-			if (!flag) {
-				currentShield += self.maxShield * 0.5f * Time.fixedDeltaTime;
-				if (currentShield > self.maxShield) {
-					currentShield = self.maxShield;
-				}
-			}
-			if (currentShield >= self.maxShield && !flag) {
-				Util.PlaySound("Play_item_proc_personal_shield_end", healthComp.gameObject);
-			}
-			if (!currentShield.Equals(healthComp.shield)) {
-				healthComp.Networkshield = currentShield;
-			}
-			*/
 		}
 
 		private void TriggerShieldGeneration(On.RoR2.CharacterMaster.orig_OnBodyDamaged orig, CharacterMaster self, DamageReport damageReport) {
 			orig(self, damageReport);
 
-			if (GetCount(damageReport.victimBody) > 0 && damageReport.victim.isHealthLow) {
-				if (rechargeStopwatch == 0) {
-					Chat.AddMessage($"{baseShield + (stackShield * (GetCount(damageReport.victimBody) - 1))} / {damageReport.victim.fullCombinedHealth}");
-					damageReport.victim.RechargeShield(baseShield + (stackShield * (GetCount(damageReport.victimBody) - 1)));
-					damageReport.victim.ForceShieldRegen();
-					rechargeStopwatch = baseCooldown;
+			// When damaged, if the user has the buff...
+			if (damageReport.victimBody.HasBuff(ForceShieldBuff)) {
+				damageReport.victimBody.healthComponent.ForceShieldRegen(); // force the shield to continue recharging
+			}
 
-					// TODO: Is increasing shield rate possible?
-					// TODO: Force regen the shield to full, even if attacked
-				}
-				//damageReport.victim.AddBarrier(75 * GetCount(damageReport.victimBody));
-				//damageReport.victim.RechargeShield((damageReport.victim.fullShield * ShieldPercentage));
-				//damageReport.victimBody.netId.Value;
-				//damageReport.victimBodyIndex
+			// When damaged, if the user has an item and is brought to critical health with the item cooldown at 0...
+			if (GetCount(damageReport.victimBody) > 0 && rechargeStopwatch == 0 && damageReport.victim.isHealthLow) {
+				Chat.AddMessage($"{baseShield + (stackShield * (GetCount(damageReport.victimBody) - 1))} / {damageReport.victim.fullCombinedHealth}"); // debug
+				damageReport.victimBody.AddTimedBuff(SafeguardCellBuff, 7f); // Add the buff that gives bonus shield for 7 seconds
+				damageReport.victimBody.AddTimedBuff(ForceShieldBuff, 2f); // Add the buff that forces shield regeneration for 2 seconds
+				rechargeStopwatch = baseCooldown; // Set the cooldown back to 30 seconds
 			}
 		}
 
 		private void TriggerShieldGeneration(On.RoR2.CharacterBody.orig_OnTakeDamageServer orig, CharacterBody self, DamageReport damageReport) {
 			orig(self, damageReport);
 
-			if (GetCount(damageReport.victimBody) > 0 && damageReport.victim.isHealthLow) {
-				if (rechargeStopwatch == 0) {
-					Chat.AddMessage($"{baseShield + (stackShield * (GetCount(damageReport.victimBody) - 1))} / {damageReport.victim.fullCombinedHealth}");
-					damageReport.victim.RechargeShield(baseShield + (stackShield * (GetCount(damageReport.victimBody) - 1)));
-					damageReport.victim.ForceShieldRegen();
-					rechargeStopwatch = baseCooldown;
-
-					// TODO: Force regen the shield to full, even if attacked
-				}
-				//damageReport.victim.AddBarrier(75 * GetCount(damageReport.victimBody));
-				//damageReport.victim.RechargeShield((damageReport.victim.fullShield * ShieldPercentage));
+			// When damaged, if the user has the buff...
+			if (damageReport.victimBody.HasBuff(ForceShieldBuff)) {
+				damageReport.victimBody.healthComponent.ForceShieldRegen(); // force the shield to continue recharging
 			}
+
+			// When damaged, if the user has an item and is brought to critical health with the item cooldown at 0...
+			if (GetCount(damageReport.victimBody) > 0 && rechargeStopwatch == 0 && damageReport.victim.isHealthLow) {
+				Chat.AddMessage($"{baseShield + (stackShield * (GetCount(damageReport.victimBody) - 1))} / {damageReport.victim.fullCombinedHealth}"); // debug
+				damageReport.victimBody.AddTimedBuff(SafeguardCellBuff, 7f); // Add the buff that gives bonus shield for 7 seconds
+				damageReport.victimBody.AddTimedBuff(ForceShieldBuff, 2f); // Add the buff that forces shield regeneration for 2 seconds
+				rechargeStopwatch = baseCooldown; // Set the cooldown back to 30 seconds
+			}
+		}
+
+		private void CreateBuff() {
+			SafeguardCellBuff = ScriptableObject.CreateInstance<BuffDef>();
+			SafeguardCellBuff.name = "Lost Cargo: Cell Shield Bonus";
+			SafeguardCellBuff.buffColor = new Color(195, 61, 100, 255);
+			SafeguardCellBuff.canStack = false;
+			SafeguardCellBuff.isDebuff = false;
+			SafeguardCellBuff.iconSprite = Resources.Load<Sprite>("Textures/MiscIcons/texMysteryIcon");
+			ContentAddition.AddBuffDef(SafeguardCellBuff);
+
+			ForceShieldBuff = ScriptableObject.CreateInstance<BuffDef>();
+			ForceShieldBuff.name = "Lost Cargo: Forced Shield Recharge";
+			ForceShieldBuff.buffColor = new Color(195, 61, 100, 255);
+			ForceShieldBuff.canStack = false;
+			ForceShieldBuff.isDebuff = false;
+			ForceShieldBuff.isHidden = true;
+			ForceShieldBuff.iconSprite = Resources.Load<Sprite>("Textures/MiscIcons/texMysteryIcon");
+			ContentAddition.AddBuffDef(ForceShieldBuff);
 		}
 
 		//Add display rules here, or where an item should be visualized on the character.

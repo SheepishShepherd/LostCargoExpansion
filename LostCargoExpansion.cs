@@ -24,7 +24,7 @@ namespace LostCargoExpansion
 	[NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
 
 	//We will be using 2 modules from R2API: ItemAPI to add our item and LanguageAPI to add our language tokens.
-	[R2APISubmoduleDependency(nameof(ItemAPI), nameof(LanguageAPI))]
+	[R2APISubmoduleDependency(nameof(ItemAPI), nameof(LanguageAPI), nameof(RecalculateStatsAPI))]
 
 	//[BepInDependency(R2API.R2API.PluginGUID, R2API.R2API.PluginVersion)]
 	//[NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
